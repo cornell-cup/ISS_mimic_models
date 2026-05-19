@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISS Hemisphere Classifier</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #8892b0;
+            font-size: 1.1rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #8892b0;
+        }
+
+        .panels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel h2 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel h2 .icon {
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccd6f6;
+            font-weight: 500;
+        }
+
+        input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        input[type="range"] {
+            padding: 0;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+        }
+
+        .range-value {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #00d9ff;
+            margin-top: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result-box.success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .result-box.error {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+        }
+
+        .result-box.info {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+        }
+
+        .prediction-result {
+            text-align: center;
+        }
+
+        .hemisphere-display {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .hemisphere-north {
+            color: #00ff88;
+        }
+
+        .hemisphere-south {
+            color: #ff6b6b;
+        }
+
+        .confidence {
+            color: #8892b0;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: #8892b0;
+            margin-top: 5px;
+        }
+
+        .confusion-matrix {
+            margin-top: 20px;
+        }
+
+        .confusion-matrix table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .confusion-matrix th, .confusion-matrix td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .confusion-matrix th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+        }
+
+        .cm-correct {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .cm-incorrect {
+            background: rgba(255, 82, 82, 0.2);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .model-status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .model-status.trained {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+        }
+
+        .model-status.not-trained {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            color: #ffc107;
+        }
+
+        .coordinates-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .coord-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 15px;
+            border-radius: 5px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #8892b0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛰️ ISS Hemisphere Classifier</h1>
+            <p class="subtitle">Machine Learning Binary Classifier for ISS Location Prediction</p>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value">{{ total_samples }}</div>
+                    <div class="stat-label">Total Samples</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="model-status-badge">Not Trained</div>
+                    <div class="stat-label">Model Status</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="panels">
+            <!-- Training Panel -->
+            <div class="panel">
+                <h2><span class="icon">🎯</span> Train Model</h2>
+                <div class="form-group">
+                    <label for="train-percentage">Training Set Size</label>
+                    <input type="range" id="train-percentage" min="10" max="90" value="80">
+                    <div class="range-value"><span id="train-value">80</span>% Training / <span id="test-value">20</span>% Testing</div>
+                </div>
+                <button class="btn-primary" onclick="trainModel()">Train Model</button>
+                <div class="loading" id="train-loading">
+                    <div class="spinner"></div>
+                    <p>Training model...</p>
+                </div>
+                <div class="result-box" id="train-result"></div>
+            </div>
+
+            <!-- Prediction Panel -->
+            <div class="panel">
+                <h2><span class="icon">🌍</span> Predict Hemisphere</h2>
+                <div class="model-status not-trained" id="predict-model-status">
+                    ⚠️ Train a model first to make predictions
+                </div>
+                <div class="form-group">
+                    <label for="longitude">Longitude (-180 to 180)</label>
+                    <input type="number" id="longitude" placeholder="Enter longitude..." min="-180" max="180" step="0.0001">
+                </div>
+                <div class="form-group">
+                    <label for="latitude">Latitude (-90 to 90)</label>
+                    <input type="number" id="latitude" placeholder="Enter latitude..." min="-90" max="90" step="0.0001">
+                </div>
+                <button class="btn-primary" onclick="predict()" id="predict-btn" disabled>Predict Hemisphere</button>
+                <div class="loading" id="predict-loading">
+                    <div class="spinner"></div>
+                    <p>Predicting...</p>
+                </div>
+                <div class="result-box" id="predict-result"></div>
+            </div>
+
+            <!-- Testing Panel -->
+            <div class="panel">
+                <h2><span class="icon">📊</span> Test on Dataset</h2>
+                <div class="model-status not-trained" id="test-model-status">
+                    ⚠️ Train a model first to run tests
+                </div>
+                <p style="color: #8892b0; margin-bottom: 20px;">
+                    Run the trained model on the testing dataset to see overall accuracy and performance metrics.
+                </p>
+                <button class="btn-primary" onclick="testModel()" id="test-btn" disabled>Run Tests</button>
+                <div class="loading" id="test-loading">
+                    <div class="spinner"></div>
+                    <p>Running tests...</p>
+                </div>
+                <div class="result-box" id="test-result"></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>ISS Hemisphere Classifier - Using Logistic Regression | Data from Kaggle ISS Tracker Dataset</p>
+        </footer>
+    </div>
+
+    <script>
+        const trainSlider = document.getElementById('train-percentage');
+        const trainValue = document.getElementById('train-value');
+        const testValue = document.getElementById('test-value');
+
+        trainSlider.addEventListener('input', function() {
+            trainValue.textContent = this.value;
+            testValue.textContent = 100 - this.value;
+        });
+
+        // Check model status on page load
+        checkModelStatus();
+
+        function checkModelStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateModelStatus(data.has_model, data);
+                });
+        }
+
+        function updateModelStatus(hasModel, data = null) {
+            const statusBadge = document.getElementById('model-status-badge');
+            const predictStatus = document.getElementById('predict-model-status');
+            const testStatus = document.getElementById('test-model-status');
+            const predictBtn = document.getElementById('predict-btn');
+            const testBtn = document.getElementById('test-btn');
+
+            if (hasModel) {
+                statusBadge.textContent = 'Trained ✓';
+                statusBadge.style.color = '#00ff88';
+                
+                predictStatus.className = 'model-status trained';
+                predictStatus.innerHTML = `✓ Model ready (${data.train_samples} train / ${data.test_samples} test samples)`;
+                
+                testStatus.className = 'model-status trained';
+                testStatus.innerHTML = `✓ Model ready (${data.test_samples} test samples available)`;
+                
+                predictBtn.disabled = false;
+                testBtn.disabled = false;
+            } else {
+                statusBadge.textContent = 'Not Trained';
+                statusBadge.style.color = '#ffc107';
+                
+                predictStatus.className = 'model-status not-trained';
+                predictStatus.innerHTML = '⚠️ Train a model first to make predictions';
+                
+                testStatus.className = 'model-status not-trained';
+                testStatus.innerHTML = '⚠️ Train a model first to run tests';
+                
+                predictBtn.disabled = true;
+                testBtn.disabled = true;
+            }
+        }
+
+        function trainModel() {
+            const percentage = document.getElementById('train-percentage').value;
+            const loading = document.getElementById('train-loading');
+            const result = document.getElementById('train-result');
+
+            loading.style.display = 'block';
+            result.style.display = 'none';
+
+            fetch('/train', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ train_percentage: percentage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                result.style.display = 'block';
+
+                if (data.success) {
+                    result.className = 'result-box success';
+                    result.innerHTML = `
+                        <h3>✓ Model Trained Successfully!</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-value">${data.train_samples}</div>
+                                <div class="metric-label">Training Samples</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${data.test_samples}</div>
+                                <div class="metric-label">Testing Samples</div>
+                            </div>
+                        </div>
+                    `;
+                    updateModelStatus(true, {
+                        train_samples: data.train_samples,
+                        test_samples: data.test_samples
+                    });
+                } else {
+                    result.className = 'result-box error';
+                    result.innerHTML = `<p>❌ Error: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                result.style.display = 'block';
+                result.className = 'result-box error';
+                result.innerHTML = `<p>❌ Error: ${error.message}</p>`;
+            });
+        }
+
+        function predict() {
+            const longitude = document.getElementById('longitude').value;
+            const latitude = document.getElementById('latitude').value;
+            const loading = document.getElementById('predict-loading');
+            const result = document.getElementById('predict-result');
+
+            if (!longitude || !latitude) {
+                result.style.display = 'block';
+                result.className = 'result-box error';
+                result.innerHTML = '<p>❌ Please enter both longitude and latitude</p>';
+                return;
+            }
+
+            loading.style.display = 'block';
+            result.style.display = 'none';
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ longitude: longitude, latitude: latitude })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                result.style.display = 'block';
+
+                if (data.success) {
+                    const hemisphereClass = data.hemisphere === 'Northern' ? 'hemisphere-north' : 'hemisphere-south';
+                    result.className = 'result-box success';
+                    result.innerHTML = `
+                        <div class="prediction-result">
+                            <div class="coordinates-display">
+                                <div class="coord-item">Lon: ${data.longitude}°</div>
+                                <div class="coord-item">Lat: ${data.latitude}°</div>
+                            </div>
+                            <div class="hemisphere-display ${hemisphereClass}">
+                                ${data.hemisphere} Hemisphere
+                            </div>
+                            <div class="confidence">Confidence: ${data.confidence}%</div>
+                        </div>
+                    `;
+                } else {
+                    result.className = 'result-box error';
+                    result.innerHTML = `<p>❌ Error: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                result.style.display = 'block';
+                result.className = 'result-box error';
+                result.innerHTML = `<p>❌ Error: ${error.message}</p>`;
+            });
+        }
+
+        function testModel() {
+            const loading = document.getElementById('test-loading');
+            const result = document.getElementById('test-result');
+
+            loading.style.display = 'block';
+            result.style.display = 'none';
+
+            fetch('/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                result.style.display = 'block';
+
+                if (data.success) {
+                    const cm = data.confusion_matrix;
+                    const report = data.classification_report;
+                    
+                    result.className = 'result-box success';
+                    result.innerHTML = `
+                        <h3>📊 Test Results</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-value">${data.accuracy}%</div>
+                                <div class="metric-label">Accuracy</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${data.test_samples}</div>
+                                <div class="metric-label">Test Samples</div>
+                            </div>
+                        </div>
+                        
+                        <div class="confusion-matrix">
+                            <h4 style="margin-top: 15px;">Confusion Matrix</h4>
+                            <table>
+                                <tr>
+                                    <th></th>
+                                    <th>Pred: South</th>
+                                    <th>Pred: North</th>
+                                </tr>
+                                <tr>
+                                    <th>Actual: South</th>
+                                    <td class="cm-correct">${cm.true_south_pred_south}</td>
+                                    <td class="cm-incorrect">${cm.true_south_pred_north}</td>
+                                </tr>
+                                <tr>
+                                    <th>Actual: North</th>
+                                    <td class="cm-incorrect">${cm.true_north_pred_south}</td>
+                                    <td class="cm-correct">${cm.true_north_pred_north}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <h4>Classification Metrics</h4>
+                            <div class="metrics-grid" style="margin-top: 10px;">
+                                <div class="metric-card">
+                                    <div class="metric-value">${report.southern.precision}%</div>
+                                    <div class="metric-label">Southern Precision</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${report.northern.precision}%</div>
+                                    <div class="metric-label">Northern Precision</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${report.southern.recall}%</div>
+                                    <div class="metric-label">Southern Recall</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${report.northern.recall}%</div>
+                                    <div class="metric-label">Northern Recall</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    result.className = 'result-box error';
+                    result.innerHTML = `<p>❌ Error: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                result.style.display = 'block';
+                result.className = 'result-box error';
+                result.innerHTML = `<p>❌ Error: ${error.message}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
