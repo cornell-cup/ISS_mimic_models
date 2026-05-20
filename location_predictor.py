@@ -241,4 +241,9 @@ def predict_custom_location():
         except Exception as e:
             print(f"Error predicting: {e}")
 
-predict_custom_location()
+if __name__ == "__main__":
+    import sys
+    if sys.stdin.isatty():
+        predict_custom_location()
+    else:
+        print("\nℹ️ Non-interactive terminal detected. Skipping interactive prediction prompt.")
